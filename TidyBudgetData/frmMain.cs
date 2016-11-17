@@ -1,8 +1,10 @@
-﻿using System;
+﻿using Microsoft.Office.Interop.Excel;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -56,8 +58,54 @@ namespace TidyBudgetData
 
             if(sErrorMessage!="")
                 MessageBox.Show(sErrorMessage,"Erro!", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            else{
+            else
+            {
+                int iRowIndex = 0;
+                Cursor.Current = Cursors.WaitCursor;
+                string sCurrProj = "";
+                string sCurrType = "";
 
+                System.Data.DataTable tblProjTypeOfAsset = new System.Data.DataTable();
+                tblProjTypeOfAsset.Columns.Add("Code", typeof(string));
+                tblProjTypeOfAsset.Columns.Add("Desc", typeof(string));
+                tblProjTypeOfAsset.Columns.Add("Type", typeof(string));
+
+                DirectoryInfo rootFolder = new DirectoryInfo(textBox1.Text);
+                Microsoft.Office.Interop.Excel.Application xlSourceApp = new Microsoft.Office.Interop.Excel.Application();
+                Microsoft.Office.Interop.Excel.Application xlTargetApp = new Microsoft.Office.Interop.Excel.Application();
+                Workbook xlSourceWorkBook;
+                Workbook xlTargetWorkBook;
+                Worksheet xlSourceWorkSheet;
+                Worksheet xlTargetWorkSheet;
+
+                // Delete file if it exists, and create a new, empty one
+                if (File.Exists("D:\\_GIT\\Projetos\\GIT - Orçamento\\Plano de Ação\\TidyData.xlsx"))
+                {
+                    File.Delete("D:\\_GIT\\Projetos\\GIT - Orçamento\\Plano de Ação\\TidyData.xlsx");
+                }
+
+                xlTargetWorkBook = xlTargetApp.Workbooks.Add();
+                xlTargetWorkBook.SaveAs("D:\\_GIT\\Projetos\\GIT - Orçamento\\Plano de Ação\\TidyData.xlsx");
+
+                // Reading worksheet that relates projects / actions to types of asset
+                xlSourceWorkBook = xlSourceApp.Workbooks.Open(textBox1.Text);
+                xlSourceWorkSheet = xlSourceWorkBook.Worksheets[1];
+
+                for (iRowIndex = 1; iRowIndex <= xlSourceWorkSheet.UsedRange.Rows.Count; iRowIndex++)
+                {
+                    sCurrProj = xlSourceWorkSheet.Cells[iRowIndex, 1].Value;
+                    if(sCurrProj.Substring(2,1)=="_")   
+                    {
+                        sCurrType = xlSourceWorkSheet.Cells[iRowIndex, 2].Value;
+                        tblProjTypeOfAsset.Rows.Add(sCurrProj.Substring(0, 5), sCurrProj.Substring(8), sCurrType);
+                    }
+                }
+
+                xlSourceApp.Quit();
+                xlTargetWorkBook.Save();
+                xlTargetApp.Quit();
+                Cursor.Current = Cursors.Default;
+                MessageBox.Show("Data tidied up", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
     }
