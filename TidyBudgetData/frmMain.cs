@@ -87,11 +87,6 @@ namespace TidyBudgetData
                 Workbook xlTargetWorkBook;
                 Worksheet xlTargetWorkSheet;
 
-                System.Data.DataTable tblProjTypeOfAsset = new System.Data.DataTable();
-                tblProjTypeOfAsset.Columns.Add("Code", typeof(string));
-                tblProjTypeOfAsset.Columns.Add("Desc", typeof(string));
-                tblProjTypeOfAsset.Columns.Add("Type", typeof(string));
-
                 // Delete file if it exists, and create a new, empty one
                 if (File.Exists("D:\\_GIT\\Projetos\\GIT - Orçamento\\Plano de Ação\\TidyData.xlsx"))
                 {
@@ -116,6 +111,11 @@ namespace TidyBudgetData
                     xlTargetWorkBook = xlTargetApp.Workbooks.Add();
                     xlTargetWorkBook.SaveAs("D:\\_GIT\\Projetos\\GIT - Orçamento\\Plano de Ação\\TidyData.xlsx");
                     xlTargetWorkSheet = xlTargetWorkBook.Worksheets[1];
+
+                    System.Data.DataTable tblProjTypeOfAsset = new System.Data.DataTable();
+                    tblProjTypeOfAsset.Columns.Add("Code", typeof(string));
+                    tblProjTypeOfAsset.Columns.Add("Desc", typeof(string));
+                    tblProjTypeOfAsset.Columns.Add("Type", typeof(string));
 
                     // Reading worksheet that relates projects / actions to types of asset
                     textBox4.Text = "Lendo tipos de ativo.";
@@ -225,6 +225,7 @@ namespace TidyBudgetData
                     System.Data.DataRow[] rowCurrActualExpenseResult;
                     double dCurrActualExpenseValue = 0;
                     string sSelect = "";
+                    string sCurrProjCode = "";
 
                     // Writing header
                     xlTargetWorkSheet.Cells[1, 1].Value = "Projeto";
@@ -232,6 +233,7 @@ namespace TidyBudgetData
                     xlTargetWorkSheet.Cells[1, 3].Value = "Ano";
                     xlTargetWorkSheet.Cells[1, 4].Value = "Orçado";
                     xlTargetWorkSheet.Cells[1, 5].Value = "Realizado";
+                    xlTargetWorkSheet.Cells[1, 6].Value = "Tipo de Ativo";
 
                     for (iRowIndex = 0; iRowIndex < tblBudget.Rows.Count;iRowIndex++)
                     {
@@ -255,9 +257,19 @@ namespace TidyBudgetData
                         xlTargetWorkSheet.Cells[iRowIndex + 2, 3].Value = dtCurrDate;
                         xlTargetWorkSheet.Cells[iRowIndex + 2, 4].Value = dCurrValue;
                         xlTargetWorkSheet.Cells[iRowIndex + 2, 5].Value = dCurrActualExpenseValue;
+
+                        sCurrProjCode = sCurrProj.Substring(0, 5);
+                        sSelect = "Code = '" + sCurrProjCode + "'";
+                        rowCurrActualExpenseResult = tblProjTypeOfAsset.Select(sSelect);
+                        if (rowCurrActualExpenseResult.GetLength(0) > 0)
+                            xlTargetWorkSheet.Cells[iRowIndex + 2, 6].Value = rowCurrActualExpenseResult[0]["Type"];
+                        else
+                            xlTargetWorkSheet.Cells[iRowIndex + 2, 6].Value = "";
+
                         tblBudget.Rows[iRowIndex]["Treated"] = true;
                     }
                 
+                    // Checking if any of the actual expenses data has not been treated, and, if it is the case, treating it.
                     sSelect = "Treated = 'false'";
                     rowCurrActualExpenseResult = tblActualExpenses.Select(sSelect);
                     if (rowCurrActualExpenseResult.GetLength(0) > 0)
@@ -270,12 +282,22 @@ namespace TidyBudgetData
                             xlTargetWorkSheet.Cells[iRowIndex + 2, 3].Value = rowCurrRow["Year"];
                             xlTargetWorkSheet.Cells[iRowIndex + 2, 4].Value = 0;
                             xlTargetWorkSheet.Cells[iRowIndex + 2, 5].Value = rowCurrRow["Value"];
+
+                            sCurrProjCode = sCurrProj.Substring(0, 5);
+                            sSelect = "Code = '" + sCurrProjCode + "'";
+                            rowCurrActualExpenseResult = tblProjTypeOfAsset.Select(sSelect);
+                            if (rowCurrActualExpenseResult.GetLength(0) > 0)
+                                xlTargetWorkSheet.Cells[iRowIndex + 2, 6].Value = rowCurrActualExpenseResult[0]["Type"];
+                            else
+                                xlTargetWorkSheet.Cells[iRowIndex + 2, 6].Value = "";
+
                             rowCurrRow["Treated"] = true;
                             iRowIndex++;
                         }
                     }
 
                     /* ============================ DEBUG ============================ */
+                    sSelect = "Treated = 'false'";
                     rowCurrActualExpenseResult = tblBudget.Select(sSelect);
                     if (rowCurrActualExpenseResult.GetLength(0) > 0)
                     {
@@ -291,6 +313,9 @@ namespace TidyBudgetData
 
                     textBox4.Text = "";
                     textBox4.Refresh();
+                    xlTypesOfAssetWorkBook.Close();
+                    xlBudgetWorkBook.Close();
+                    xlActualExpensesWorkBook.Close();
                     xlSourceApp.Quit();
                     xlTargetWorkBook.Save();
                     xlTargetWorkBook.Close();
